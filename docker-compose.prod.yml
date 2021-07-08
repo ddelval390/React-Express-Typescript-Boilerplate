@@ -1,0 +1,43 @@
+version: "3"
+services:
+  client:
+    stdin_open: true
+    build:
+      context: ./client
+  api:
+    stdin_open: true
+    build:
+      context: ./server
+    links:
+      - mongo
+  nginx:
+    restart: always
+    build:
+      context: ./nginx
+    ports:
+      - 3050:80
+  mongo:
+    image: mongo
+    restart: always
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=root
+      - MONGO_INITDB_ROOT_PASSWORD=password
+      - MONGO_INITDB_DATABASE=fin-tracker
+  mongo-express:
+    image: mongo-express
+    restart: always
+    environment:
+      - ME_CONFIG_MONGODB_SERVER=mongo
+      - ME_CONFIG_MONGODB_PORT=27017
+      - ME_CONFIG_MONGODB_ENABLE_ADMIN=false
+      - ME_CONFIG_MONGODB_AUTH_DATABASE=admin
+      - ME_CONFIG_MONGODB_AUTH_USERNAME=root
+      - ME_CONFIG_MONGODB_AUTH_PASSWORD=password
+      - ME_CONFIG_BASICAUTH_USERNAME=user
+      - ME_CONFIG_BASICAUTH_PASSWORD=password
+    ports:
+      - "8081:8081"
+    depends_on:
+      - mongo
+    links:
+      - mongo

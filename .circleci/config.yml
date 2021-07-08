@@ -1,0 +1,57 @@
+version: 2.1
+
+jobs:
+  test:
+    docker:
+      - image: docker:17.05.0-ce-git
+    steps:
+      - checkout
+      - setup_remote_docker:
+          version: 19.03.13
+      - run:
+          name: Build the client
+          command: docker build -t ddelval/fin-tracker-client-test -f ./client/Dockerfile.dev ./client
+      - run:
+          name: Run client tests
+          command: docker run -e CI=true ddelval/fin-tracker-client-test yarn test
+      - run:
+          name: Build the server
+          command: docker build -t ddelval/fin-tracker-server-test -f ./server/Dockerfile.dev ./server
+      - run:
+          name: Run server tests
+          command: docker run -e CI=true ddelval/fin-tracker-server-test yarn test
+
+  build:
+    docker:
+      - image: docker:17.05.0-ce-git
+    steps:
+      - checkout
+
+      - setup_remote_docker:
+          version: 19.03.13
+
+      - run:
+          name: Login in to docker
+          command: docker login -u "$DOCKER_ID" -p "$DOCKER_PASSWORD"
+
+      # build the images
+      - run: docker build -t ddelval/fin-tracker-client ./client
+      - run: docker build -t ddelval/fin-tracker-server ./server
+      - run: docker build -t ddelval/fin-tracker-nginx ./nginx
+
+      # push to docker
+      - run: docker push ddelval/fin-tracker-client
+      - run: docker push ddelval/fin-tracker-server
+      - run: docker push ddelval/fin-tracker-nginx
+
+workflows:
+  version: 2
+  build-test:
+    jobs:
+      - test
+      - build:
+          requires:
+            - test
+          filters:
+            branches:
+              only: master
